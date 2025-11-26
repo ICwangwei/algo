@@ -83,7 +83,7 @@ end
 
 % 启用十字交叉线
 if pic == 1
-    % anEnableCursor([ax1]);
+    anEnableCursor([ax1]);
 end
 
 % 恢复
