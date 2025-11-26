@@ -65,6 +65,7 @@ if pic == 1
 figure;
 ax1 = subplot(1, 1, 1);
 semilogx(f, 20*log10(squeeze(mag)));
+xlabel('频率(Hz)');
 ylabel('幅度衰减(dB)');
 title('幅频特性曲线');
 grid on;
@@ -82,7 +83,7 @@ end
 
 % 启用十字交叉线
 if pic == 1
-    anEnableCursor([ax1]);
+    % anEnableCursor([ax1]);
 end
 
 % 恢复
