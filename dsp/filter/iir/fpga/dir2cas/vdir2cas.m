@@ -26,14 +26,13 @@
 %             Ainuo           1.0                Original       
 % 
 % ************************************************************************ 
-% 函数说明: 滤波器
-% b       : 离散系统函数的分子
-% a       : 离散系统函数的分母
-% data    : 信号序列
-% fs      : 采样率
-% pic     : 绘图控制
-% filter_o: 已滤波信号
-function [filter_o] = vfilter(b, a, data, fs, pic)
+% 函数说明: 将直接型结构IIR滤波器的系数转成级联型结构IIR滤波器的系数
+% b       : 直接型结构IIR滤波器系统函数的分母项系数
+% a       : 直接型结构IIR滤波器系统函数的分子项系数
+% b0      : 增益系数
+% B       : 包含因子系数bk的K行3列矩阵
+% A       : 包含因子系数ak的K行3列矩阵
+function [b0, B, A] = vdir2cas(b, a)
 % ========================================================================\
 %     ****         Define Parameter and Internal Signals          **** 
 % ========================================================================/
@@ -45,50 +44,38 @@ function [filter_o] = vfilter(b, a, data, fs, pic)
 % ========================================================================\
 %     ****                       Main Code                        ****  
 % ========================================================================/
-% 保存
-oldFig = get(0, 'CurrentFigure');
+b0 = b(1); b = b/b0;
+a0 = a(1); a = a/a0; b0 = b0/a0;
 
-% 滤波器
-filter_o = filter(b, a, data);
-
-% 创建系统函数对象
-H = tf(b, a, 1/fs, 'Variable', 'z^-1');
-
-% 幅频响应
-[mag, phase, w] = bode(H);
-
-% 角频率转频率
-f = w / (2 * pi);
-
-% 幅频响应
-if pic == 1
-figure;
-ax1 = subplot(1, 1, 1);
-semilogx(f, 20*log10(squeeze(mag)));
-xlabel('频率(Hz)');
-ylabel('幅度衰减(dB)');
-title('幅频特性曲线');
-grid on;
+% 将分子项系数、分母项系数的长度补齐后再进行计算
+M = length(b); N = length(a);
+if N > M
+    b = [b zeros(1, N-M)];
+elseif M > N
+    a = [a zeros(1, M-N)]; N = M;
+else 
+    N = M;
 end
 
-% % 相频响应
-% if pic == 1
-% ax2 = subplot(2, 1, 2);
-% semilogx(f, squeeze(phase));
-% xlabel('频率(Hz)');
-% ylabel('相位(度)');
-% title('相频特性曲线');
-% grid on;
-% end
-
-% 启用十字交叉线
-if pic == 1
-    % anEnableCursor([ax1]);
+% 初始化级联型结构IIR滤波器的系数矩阵
+K = floor(N/2); B = zeros(K, 3); A = zeros(K, 3);
+if K * 2 == N
+    b = [b 0]; a = [a 0];
 end
 
-% 恢复
-if ~isempty(oldFig) && ishghandle(oldFig)
-    figure(oldFig);
+% 根据多项式系数利用roots()函数求出所有的根
+% 利用cplxpair()函数按实部从小到大的顺序进行排序
+broots = cplxpair(roots(b));
+aroots = cplxpair(roots(a));
+
+% 将计算复共轭对的根转换成多项式系数
+for i = 1:2:2*K
+    Brow = broots(i:1:i+1,:);
+    Brow = real(poly(Brow));
+    B(fix(i+1)/2,:) = Brow;
+    Arow = aroots(i:1:i+1,:);
+    Arow = real(poly(Arow));
+    A(fix(i+1)/2,:) = Arow;
 end
 
 end
