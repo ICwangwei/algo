@@ -33,7 +33,7 @@
 % fs      : 采样率
 % pic     : 绘图控制
 % Harm_o  : 谐波分量
-function [Harm_o] = harmonic(data, H, f, fs, pic)
+function [Harm_o] = vHarmonic(data, H, f, fs, pic)
 % ========================================================================\
 %     ****         Define Parameter and Internal Signals          **** 
 % ========================================================================/
