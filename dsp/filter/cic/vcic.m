@@ -26,16 +26,17 @@
 %             Ainuo           1.0                Original       
 % 
 % ************************************************************************ 
-% 函数说明: 幅频响应曲线【注意:函数freqz()是理论值，而delta因为长度有限只是近似值】
-% b       : (直接型)系统函数分子
-% a       : (直接型)系统函数分母
-% sos     : 级联型二阶节系数标准
-% n       : 点数(影响频谱分辨率)
+% 函数说明: CIC滤波器
+% R       : 抽取因子
+% M       : 差分延迟单元
+% N       : 阶数
+% data    : 未滤波信号
 % fs      : 采样率
-% y       : 幅频响应纵坐标(dB)
-% x       : 幅频响应横坐标(Hz)
-function [y, x] = vfreqz(b, a, sos, n, fs)
-
+% n       : 点数(幅频响应曲线的频谱分辨率)
+% fig     : 绘图
+% cic_o   : 已滤波信号
+% ofs     : 抽值采样率
+function [cic_o, ofs] = vcic(R, M, N, data, fs, n, fig)
 % ========================================================================\
 %     ****         Define Parameter and Internal Signals          **** 
 % ========================================================================/
@@ -47,29 +48,54 @@ function [y, x] = vfreqz(b, a, sos, n, fs)
 % ========================================================================\
 %     ****                       Main Code                        ****  
 % ========================================================================/
+% 保存
+old = get(0, 'CurrentFigure');
 
-% 级联型
-iir_cas = ~isempty(sos) && (isempty(b) || isempty(a));
+% 滤波器设计
+cic = dsp.CICDecimator(DecimationFactor = R, DifferentialDelay = M, NumSections = N);
 
-% 直接型
-iir_dir = ~isempty(b) && ~isempty(a) && isempty(sos);
+% 列向量
+data = data(:);
 
-% 判断
-if iir_cas == 1
-    [h, w] = freqz(sos, n);
-elseif iir_dir == 1
-    [h, w] = freqz(b, a, n);
-else
-    error('幅频响应曲线"freqz"绘制错误! \n');
+% 长度信息
+len = length(data);
+
+% 补0
+if mod(len, R) ~= 0
+    data = [data; zeros(R-mod(len,R)), 1];
 end
 
-% 纵坐标(dB)
-y = 20 * log10(abs(h));
+% 滤波
+cic_o  = cic(data);
 
-% 归一化
-y = y - max(y);
+% 增益
+g = (R * M) ^ N;
 
-% 横坐标(Hz)
-x = w * fs / (2 * pi);
+% 输出
+cic_o = cic_o/g;
+
+if mod(len, R) ~= 0
+    cic_o  = cic_o(1:end-1); % 补零多1个样点
+end
+
+% 采样率
+ofs = fs/R;
+
+% 绘图
+if fig == 1
+% 幅频响应曲线
+[y, x] = vfreqz([], [], cic, n, fs);
+figure;
+plot(x, y); title(sprintf('幅频响应曲线(cic): fs = %dHz', fs)); xlabel('频率(Hz)'); ylabel('幅度');
+end
+
+% 恢复
+if ~isempty(old) && ishghandle(old)
+    figure(old);
+end
 
 end
+
+
+
+
