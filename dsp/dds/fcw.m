@@ -26,17 +26,17 @@
 %             Ainuo           1.0                Original       
 % 
 % ************************************************************************ 
-% 函数说明: fir滤波器抽头系数量化
-% b      : 抽头系数
-% q      : 量化位宽(注意:非真正量化位宽)
-% log    : 控制打印
-% coe    : 生成coe文件的路径
-% B      : 已量化的抽头系数
-function [B] = vfloat2fix3(b, q, log, coe)
+% 函数说明: 频率控制字
+% fclk    : 时钟频率
+% fout    : 信号频率
+% phase_n : 相位累加器位宽
+% qn      : 量化位宽
+% fcw_o   : 频率控制字(量化)
+function [fcw_o] = fcw(fclk, fout, phase_n, qn)
 % ========================================================================\
 %     ****         Define Parameter and Internal Signals          **** 
 % ========================================================================/
-N = 2;
+
 
 
 
@@ -44,47 +44,19 @@ N = 2;
 % ========================================================================\
 %     ****                       Main Code                        ****  
 % ========================================================================/
-% % 系数归一化
-% b = b / max(abs(b));
-% 
-% % 量化
-% b = b * (2^(fpga_n-1)-1);
-% 
-% % 输出
-% B = round(b);
+% 频率控制字
+fcw_tmp = (fout * 2^phase_n) / fclk;
 
-% 预量化
-b = b * (2 ^ q);
-
-% 输出
-B = round(b);
-
-% 计算真正的量化位宽
-M = max(abs(B));
-while ~(((2 ^ (N-2)) < M) && (M < (2 ^ (N-1))))
-    N = N + 1;
-end 
+% 量化
+fcw_o = round(fcw_tmp * 2^qn);
 
 % 打印
-if log == 1
-fprintf('--- 抽头系数 --------------------------------------------------- \n');
-fprintf('量化位宽: %d \n', q);
-fprintf('实际量化位宽: %d \n', N);
-fprintf('截位方法: 输出最高位比输入数据的最高位增加%d比特 \n', q);
-fprintf('B = ');
-fprintf('%d, ', B(1:end-1));
-fprintf('%d  ', B(end:end));
-fprintf('\n');
-end
-
-% 生成COE文件
-if ~isempty(coe)
-fid = fopen(fullfile(coe), 'w+');
-fprintf(fid,'radix = 10; \n');
-fprintf(fid,'coefdata = \n');
-fprintf(fid,'%d, \n', B(1:end-1));
-fprintf(fid,'%d; \n', B(end:end));
-fclose(fid);
-end
+fprintf('--- 频率控制字 ------------------------------------\n');
+fprintf('时钟频率: %.3f Hz \n', fclk);
+fprintf('信号频率: %.3f Hz \n', fout);
+fprintf('相位累加器位宽: %d \n', phase_n);
+fprintf('频率控制字(未量化): %.10f \n', fcw_tmp);
+fprintf('频率控制字量化位宽: %d \n', qn);
+fprintf('频率控制字(量化): %d \n', fcw_o);
 
 end
