@@ -26,7 +26,7 @@
 %             Ainuo           1.0                Original       
 % 
 % ************************************************************************ 
-% 函数说明: CIC滤波器
+% 函数说明: CIC抽值滤波器
 % R       : 抽取因子
 % M       : 差分延迟单元
 % N       : 阶数
@@ -86,7 +86,7 @@ if fig == 1
 % 幅频响应曲线
 [y, x] = vfreqz([], [], cic, n, fs);
 figure;
-plot(x, y); title(sprintf('幅频响应曲线(cic): fs = %dHz', fs)); xlabel('频率(Hz)'); ylabel('幅度');
+plot(x, y); title(sprintf('幅频响应曲线(CIC抽值): fs = %dHz, fs_o = %dHz', fs, ofs)); xlabel('频率(Hz)'); ylabel('幅度');
 end
 
 % 恢复

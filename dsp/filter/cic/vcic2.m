@@ -26,17 +26,21 @@
 %             Ainuo           1.0                Original       
 % 
 % ************************************************************************ 
-% 函数说明: fir滤波器抽头系数量化
-% b      : 抽头系数
-% q      : 量化位宽(注意:非真正量化位宽)
-% log    : 控制打印
-% coe    : 生成coe文件的路径
-% B      : 已量化的抽头系数
-function [B] = vfloat2fix3(b, q, log, coe)
+% 函数说明: CIC插值滤波器
+% I       : 插值因子
+% M       : 差分单元
+% N       : 阶数
+% data    : 待滤波数据
+% fs      : 采样率
+% n       : 点数(绘制幅频响应曲线)
+% fig     : 绘图控制
+% cic_o   : 已滤波信号
+% fs_o    : 插值采样率
+function [cic_o, fs_o] = vcic2(I, M, N, data, fs, n, fig)
 % ========================================================================\
 %     ****         Define Parameter and Internal Signals          **** 
 % ========================================================================/
-N = 2;
+
 
 
 
@@ -44,47 +48,40 @@ N = 2;
 % ========================================================================\
 %     ****                       Main Code                        ****  
 % ========================================================================/
-% % 系数归一化
-% b = b / max(abs(b));
-% 
-% % 量化
-% b = b * (2^(fpga_n-1)-1);
-% 
-% % 输出
-% B = round(b);
+% 保存
+old = get(0, 'CurrentFigure');
 
-% 预量化
-b = b * (2 ^ q);
+% 滤波器设计
+cic = dsp.CICInterpolator(InterpolationFactor = I, DifferentialDelay = M, NumSections = N); % 零插 + 平滑
+
+% 列向量
+data = data(:);
+
+% 滤波
+cic_o = cic(data);
+
+% 增益
+g = ((I * M) ^ N) / I;
 
 % 输出
-B = round(b);
+cic_o = cic_o/g;
 
-% 计算真正的量化位宽
-M = max(abs(B));
-while ~(((2 ^ (N-2)) < M) && (M < (2 ^ (N-1))))
-    N = N + 1;
-end 
+% 采样率
+fs_o = fs * I;
 
-% 打印
-if log == 1
-fprintf('--- 抽头系数 --------------------------------------------------- \n');
-fprintf('量化位宽: %d \n', q);
-fprintf('实际量化位宽: %d \n', N);
-fprintf('截位方法: 输出最高位比输入数据的最高位增加%d比特 \n', q);
-fprintf('B = ');
-fprintf('%d, ', B(1:end-1));
-fprintf('%d  ', B(end:end));
-fprintf('\n');
+% 幅频响应
+[y,x] = vfreqz([], [], cic, n, fs);
+
+% 绘图
+if fig == 1
+figure;
+plot(x, y); title(sprintf('幅频响应曲线(CIC插值): fs = %dHz, fs_o = %dHz', fs, fs_o)); xlabel('频率(Hz)'); ylabel('幅度');
 end
 
-% 生成COE文件
-if ~isempty(coe)
-fid = fopen(fullfile(coe), 'w+');
-fprintf(fid,'radix = 10; \n');
-fprintf(fid,'coefdata = \n');
-fprintf(fid,'%d, \n', B(1:end-1));
-fprintf(fid,'%d; \n', B(end:end));
-fclose(fid);
+% 恢复
+if ~isempty(old) && ishghandle(old)
+    figure(old);
 end
+
 
 end
